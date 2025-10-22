@@ -37,7 +37,10 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.0.1"
+    "@openzeppelin/contracts": "^5.4.0",
+    "@openzeppelin/contracts-upgradeable": "^5.4.0",
+    "keccak256": "^1.0.6",
+    "merkletreejs": "^0.6.0"
   },
   "prettier": {
     "printWidth": 120

@@ -1,34 +1,39 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+import { ethers, upgrades } from "hardhat";
+
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts, ethers } = hre;
-  const { deploy } = deployments;
+  const { getNamedAccounts } = hre;
   const { deployer } = await getNamedAccounts();
-    console.log("");
-    console.log("DEPLOYING MYMINTTOKEN CONTRACT...");
-    console.log("Deployer:", deployer);
-    console.log("");
-    const myMintToken = await deploy("MyMintToken", {
-        from: deployer,
-        args: ["MyMintToken","MMT"], // Không có constructor arguments
-        log: true,
-        waitConfirmations: 1,
-    }); 
-    console.log("✅ Deployed MyMintToken at:", myMintToken.address);
-    console.log("");
 
-    // Kết nối lại contract để mint
-    const tokenContract = await ethers.getContractAt("MyMintToken", myMintToken.address, await ethers.getSigner(deployer));
-    console.log("Minting 1000 tokens to deployer...");
-    const tx = await tokenContract.mint(deployer, ethers.parseUnits("1000", 18));
-    await tx.wait();
-    console.log("✅ Minted 1000 tokens to deployer:", deployer);
-    const balance = await tokenContract.balanceOf(deployer);
-    const totalSupply = await tokenContract.totalSupply();
-    console.log("Deployer balance:", ethers.formatUnits(balance, 18), "MMT");
-    console.log("Total Supply:", ethers.formatUnits(totalSupply, 18), "MMT");
-}
+  const [signer] = await ethers.getSigners();
+
+  console.log("");
+  console.log("🚀 DEPLOYING MyMintToken (UUPS Proxy)...");
+  console.log("Deployer address:", deployer);
+  console.log("Signer address:", signer.address);
+  console.log("");
+
+  const TokenFactory = await ethers.getContractFactory("MyMintToken");
+
+  const proxy = await upgrades.deployProxy(
+    TokenFactory,
+    ["MyMintToken", "MMT", deployer],
+    {
+      initializer: "initialize",
+      kind: "uups",
+    }
+  );
+
+  await proxy.waitForDeployment();
+  const proxyAddress = await proxy.getAddress();
+  console.log("✅ Proxy deployed at:", proxyAddress);
+  // Attach the proxy address and use a generic type to avoid missing type declarations.
+  const token = TokenFactory.attach(proxyAddress) as any;
+  const balance = await token.balanceOf(deployer);
+  console.log("Deployer balance:", ethers.formatUnits(balance, 18), "MMT");
+};
 
 export default func;
 func.tags = ["MyMintToken", "deploy"];

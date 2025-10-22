@@ -1,47 +1,42 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract MyMintToken is ERC20, Ownable, AccessControl {
+contract MyMintToken is Initializable, ERC20Upgradeable, AccessControlUpgradeable, UUPSUpgradeable
+{
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    mapping(address => bool) public whitelisted;
 
-    constructor(string memory name, string memory symbol)
-        ERC20(name, symbol)
-        Ownable(msg.sender)
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(
+        string memory name_,
+        string memory symbol_,
+        address admin
+    ) public initializer {
+        __ERC20_init(name_, symbol_);
+        __AccessControl_init();
+        __UUPSUpgradeable_init();
+
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(MINTER_ROLE, admin);
+    }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
+
+    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE)
     {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(MINTER_ROLE, msg.sender);
-    }
-
-    modifier onlyWhitelisted() {
-        require(whitelisted[msg.sender], "Not whitelisted");
-        _;
-    }
-
-    function addToWhitelist(address user) public onlyOwner {
-        whitelisted[user] = true;
-    }
-
-    function removeFromWhitelist(address user) public onlyOwner {
-        whitelisted[user] = false;
-    }
-
-    function mint(address to, uint256 amount) public {
-        require(hasRole(MINTER_ROLE, msg.sender), "Caller is not a minter");
         _mint(to, amount);
     }
 
-    function burn(address from, uint256 amount) public {
-        require(hasRole(MINTER_ROLE, msg.sender), "Caller is not a minter");
+    function burn(address from, uint256 amount) external onlyRole(MINTER_ROLE)
+    {
         _burn(from, amount);
-    }
-
-    function claimAirdrop(uint256 amount) public onlyWhitelisted {
-        _mint(msg.sender, amount);
-        whitelisted[msg.sender] = false; // one-time claim
     }
 }
