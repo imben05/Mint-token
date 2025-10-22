@@ -37,21 +37,17 @@ const reportGas = process.env.REPORT_GAS;
 module.exports = {
   networks: {
     "sepolia": {
-      url: "https://sepolia.infura.io/v3/511ae198eaa94d38a0d8b2cfcb4f51bf",
+      url: "https://eth-sepolia.public.blastapi.io",
       chainId: 11155111,
-      accounts: process.env.TESTNET_PRIVATE_KEY ? [process.env.TESTNET_PRIVATE_KEY] : [],
+      accounts: [testnetPrivateKey],
+      timeout: 40000,
     },
     "ethereum": {
       url: "https://eth-mainnet.public.blastapi.io",
       chainId: 1,
-      accounts: mainnetPrivateKey ? [mainnetPrivateKey] : [],
+      accounts: [mainnetPrivateKey],
       timeout: 60000,
-  },
-    "bsctestnet": {
-      url: "https://data-seed-prebsc-1-s1.binance.org:8545/",
-      chainId: 97,
-      accounts: testnetPrivateKey ? [testnetPrivateKey] : [],
-},
+    }
   },
   solidity: {
     compilers: [
@@ -62,7 +58,7 @@ module.exports = {
             enabled: true,
             runs: 1000,
           },
-          viaIR: false
+          viaIR: true
         },
       }
     ],
@@ -84,7 +80,9 @@ module.exports = {
     runOnCompile: true,
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: {
+      "mainnet": "",
+    }
   },
   sourcify: {
     // Disabled by default
