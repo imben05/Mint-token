@@ -2,24 +2,37 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { ethers, upgrades } from "hardhat";
 
-
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts } = hre;
   const { deployer } = await getNamedAccounts();
 
   const [signer] = await ethers.getSigners();
 
-  console.log("");
-  console.log("🚀 DEPLOYING MyMintToken (UUPS Proxy)...");
-  console.log("Deployer address:", deployer);
-  console.log("Signer address:", signer.address);
+  console.log("══════════════════════════════════");
+  console.log("🚀 DEPLOYING MyMintToken & MerkleAirdrop (UUPS Proxy)");
+  console.log("══════════════════════════════════");
+  console.log("Deployer:", deployer);
+  console.log("Signer:", signer.address);
   console.log("");
 
+  // ──────────────────────────────
+  // 1️⃣ Deploy MyMintToken (non-upgradeable)
+  // ──────────────────────────────
   const TokenFactory = await ethers.getContractFactory("MyMintToken");
+  const token = await TokenFactory.deploy("MyMintToken", "MMT", deployer);
+  await token.waitForDeployment();
+
+  const tokenAddress = await token.getAddress();
+  console.log("✅ MyMintToken deployed at:", tokenAddress);
+
+  // ──────────────────────────────
+  // 2️⃣ Deploy MerkleAirdropUpgradeable (UUPS Proxy)
+  // ──────────────────────────────
+  const AirdropFactory = await ethers.getContractFactory("MerkleAirdropUpgradeable");
 
   const proxy = await upgrades.deployProxy(
-    TokenFactory,
-    ["MyMintToken", "MMT", deployer],
+    AirdropFactory,
+    [tokenAddress, deployer],
     {
       initializer: "initialize",
       kind: "uups",
@@ -27,13 +40,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   await proxy.waitForDeployment();
-  const proxyAddress = await proxy.getAddress();
-  console.log("✅ Proxy deployed at:", proxyAddress);
-  // Attach the proxy address and use a generic type to avoid missing type declarations.
-  const token = TokenFactory.attach(proxyAddress) as any;
-  const balance = await token.balanceOf(deployer);
-  console.log("Deployer balance:", ethers.formatUnits(balance, 18), "MMT");
+  const airdropAddress = await proxy.getAddress();
+
+  console.log("✅ MerkleAirdrop Proxy deployed at:", airdropAddress);
+
+  // ──────────────────────────────
+  // 3️⃣ Check token linkage
+  // ──────────────────────────────
+  const airdrop = await ethers.getContractAt("MerkleAirdropUpgradeable", airdropAddress);
+  const tokenLinked = await airdrop.token();
+
+  console.log("🔗 Token linked in airdrop:", tokenLinked);
+  console.log("");
+
+  console.log("══════════════════════════════════");
+  console.log("✅ DEPLOYMENT COMPLETE");
+  console.log("══════════════════════════════════");
 };
 
 export default func;
-func.tags = ["MyMintToken", "deploy"];
+func.tags = ["MyMintToken", "MerkleAirdropUpgradeable", "deploy"];

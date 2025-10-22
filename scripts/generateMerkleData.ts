@@ -4,7 +4,7 @@ import { MerkleTree } from "merkletreejs";
 import { ethers } from "ethers";
 
 // 🔧 Load whitelist từ file JSON
-const raw = readFileSync("merkle/whitelist.json", "utf-8");
+const raw = readFileSync("scripts/merkle/whitelist.json", "utf-8");
 const whitelist = JSON.parse(raw) as { address: string; amount: string }[];
 
 // 📦 Băm dữ liệu đầu vào thành các leaf node
@@ -18,7 +18,7 @@ const tree = new MerkleTree(leafNodes, keccak256, { sortPairs: true });
 const root = tree.getHexRoot();
 
 // 💾 Ghi merkle root ra file
-writeFileSync("merkle/merkleRoot.json", JSON.stringify({ merkleRoot: root }, null, 2));
+writeFileSync("scripts/merkle/merkleRoot.json", JSON.stringify({ merkleRoot: root }, null, 2));
 
 // 🔐 Tạo merkle proof cho từng địa chỉ
 const proofs: Record<string, { amount: string; proof: string[] }> = {};
@@ -35,6 +35,6 @@ for (const { address, amount } of whitelist) {
 }
 
 // 💾 Ghi ra file
-writeFileSync("merkle/merkleProofs.json", JSON.stringify(proofs, null, 2));
+writeFileSync("scripts/merkle/merkleProofs.json", JSON.stringify(proofs, null, 2));
 
 console.log("✅ Merkle root & proofs generated!");

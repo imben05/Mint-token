@@ -1,42 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract MyMintToken is Initializable, ERC20Upgradeable, AccessControlUpgradeable, UUPSUpgradeable
-{
+contract MyMintToken is ERC20, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
-    }
-
-    function initialize(
-        string memory name_,
-        string memory symbol_,
-        address admin
-    ) public initializer {
-        __ERC20_init(name_, symbol_);
-        __AccessControl_init();
-        __UUPSUpgradeable_init();
-
+    constructor(string memory name_, string memory symbol_, address admin) ERC20(name_, symbol_) {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(MINTER_ROLE, admin);
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
-
-    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE)
-    {
+    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
         _mint(to, amount);
     }
 
-    function burn(address from, uint256 amount) external onlyRole(MINTER_ROLE)
-    {
+    function burn(address from, uint256 amount) external onlyRole(MINTER_ROLE) {
         _burn(from, amount);
     }
 }
